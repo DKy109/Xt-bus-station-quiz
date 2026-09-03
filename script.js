@@ -4,37 +4,14 @@ const CONFIG = {
 };
 
 const $ = (id) => document.getElementById(id);
-
 const els = {
-  loadStatus: $("loadStatus"),
-  startPanel: $("startPanel"),
-  gamePanel: $("gamePanel"),
-  resultPanel: $("resultPanel"),
-  startBtn: $("startBtn"),
-  startTimer: $("startTimer"),
-  startFound: $("startFound"),
-  startRemaining: $("startRemaining"),
-  startTotal: $("startTotal"),
-  timer: $("timer"),
-  foundCount: $("foundCount"),
-  remainingCount: $("remainingCount"),
-  totalCount: $("totalCount"),
-  answerInput: $("answerInput"),
-  foundList: $("foundList"),
-  foundHint: $("foundHint"),
-  giveUpBtn: $("giveUpBtn"),
-  pauseBtn: $("pauseBtn"),
-  resultFound: $("resultFound"),
-  resultTotal: $("resultTotal"),
-  resultFoundCount: $("resultFoundCount"),
-  resultFoundList: $("resultFoundList"),
-  completionRate: $("completionRate"),
-  usedTime: $("usedTime"),
-  resultTitle: $("resultTitle"),
-  missedCount: $("missedCount"),
-  missedList: $("missedList"),
-  againBtn: $("againBtn"),
-  resetBtn: $("resetBtn")
+  loadStatus: $("loadStatus"), startPanel: $("startPanel"), gamePanel: $("gamePanel"), resultPanel: $("resultPanel"),
+  startBtn: $("startBtn"), startTimer: $("startTimer"), startFound: $("startFound"), startRemaining: $("startRemaining"), startTotal: $("startTotal"),
+  timer: $("timer"), foundCount: $("foundCount"), remainingCount: $("remainingCount"), totalCount: $("totalCount"),
+  answerInput: $("answerInput"), foundList: $("foundList"), foundHint: $("foundHint"), giveUpBtn: $("giveUpBtn"), pauseBtn: $("pauseBtn"),
+  resultFound: $("resultFound"), resultTotal: $("resultTotal"), resultFoundCount: $("resultFoundCount"), resultFoundList: $("resultFoundList"),
+  completionRate: $("completionRate"), usedTime: $("usedTime"), resultTitle: $("resultTitle"), missedCount: $("missedCount"), missedList: $("missedList"),
+  againBtn: $("againBtn"), resetBtn: $("resetBtn"), inputState: $("inputState")
 };
 
 let allStations = [];
@@ -43,12 +20,13 @@ let foundStations = [];
 let gameTimer = null;
 let remainingSeconds = CONFIG.gameSeconds;
 let paused = false;
-let gameState = "loading"; // loading | ready | playing | paused | finished
+let gameState = "loading";
+let composing = false;
 
 function formatTime(totalSeconds) {
-  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
-  const seconds = Math.max(0, totalSeconds % 60).toString().padStart(2, "0");
-  return `${minutes}:${seconds}`;
+  const m = Math.floor(Math.max(0, totalSeconds) / 60).toString().padStart(2, "0");
+  const s = (Math.max(0, totalSeconds) % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
 }
 
 function updateStartStats() {
@@ -63,53 +41,37 @@ function updateGameStats() {
   els.foundCount.textContent = foundStations.length;
   els.remainingCount.textContent = remainingStations.length;
   els.totalCount.textContent = allStations.length;
-
   els.timer.classList.toggle("warning", remainingSeconds <= 300 && remainingSeconds > 60);
   els.timer.classList.toggle("danger", remainingSeconds <= 60);
 }
 
 async function loadStations() {
   try {
-    const response = await fetch(CONFIG.dataFile, { cache: "no-store" });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
+    const response = await fetch(`${CONFIG.dataFile}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = await response.text();
-    const stations = text
-      .replace(/^\uFEFF/, "")
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(Boolean);
-
-    if (!stations.length) {
-      throw new Error("stations.txt 中没有有效站名");
-    }
+    const stations = text.replace(/^\uFEFF/, "").split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (!stations.length) throw new Error("stations.txt 中没有有效站名");
 
     allStations = stations;
-    remainingStations = [...allStations];
+    remainingStations = [...stations];
     foundStations = [];
-
-    els.loadStatus.textContent = `已载入 ${allStations.length} 个站名 · 数据准备完成`;
+    gameState = "ready";
+    els.loadStatus.textContent = `DATA READY  ·  ${allStations.length} 个站名已载入`;
     els.loadStatus.className = "status ok";
     els.startBtn.disabled = false;
-    gameState = "ready";
     updateStartStats();
   } catch (error) {
-    console.error(error);
-    els.loadStatus.className = "status error";
-    els.loadStatus.innerHTML =
-      `读取 <code>${CONFIG.dataFile}</code> 失败。请确认它和 index.html 位于同一目录，` +
-      `并通过 GitHub Pages / 本地 HTTP 服务器打开，而不是直接双击 index.html。`;
-    els.startBtn.disabled = true;
+    console.error("Station data load failed:", error);
     gameState = "loading";
+    els.loadStatus.className = "status error";
+    els.loadStatus.innerHTML = `无法读取 <code>${CONFIG.dataFile}</code>。请使用本地 HTTP 服务器或 GitHub Pages 打开。`;
+    els.startBtn.disabled = true;
   }
 }
 
 function startGame() {
   if (!allStations.length) return;
-
   clearInterval(gameTimer);
   remainingStations = [...allStations];
   foundStations = [];
@@ -120,36 +82,40 @@ function startGame() {
   els.startPanel.classList.add("hidden");
   els.resultPanel.classList.add("hidden");
   els.gamePanel.classList.remove("hidden");
-  els.pauseBtn.textContent = "暂停";
+  els.pauseBtn.textContent = "暂停游戏";
   els.answerInput.value = "";
-  els.answerInput.placeholder = "例：中";
-  els.foundList.innerHTML = "";
+  els.answerInput.disabled = false;
+  els.answerInput.placeholder = "输入一个字";
+  els.foundList.innerHTML = '<div class="list-empty">等待你的第一个答案</div>';
   els.foundList.classList.add("empty");
-  els.foundList.textContent = "还没有发现站名";
-  els.foundHint.textContent = "输入字符开始";
+  els.foundHint.textContent = "新发现会出现在最前面";
+  setInputState("READY", "请输入一个汉字或数字");
   updateGameStats();
 
   gameTimer = setInterval(() => {
-    if (paused) return;
-
+    if (paused || gameState !== "playing") return;
     remainingSeconds -= 1;
     updateGameStats();
-
     if (remainingSeconds <= 0) {
       remainingSeconds = 0;
       finishGame("时间到");
     }
   }, 1000);
 
-  setTimeout(() => els.answerInput.focus(), 50);
+  requestAnimationFrame(() => els.answerInput.focus());
 }
 
-function normalizeInput(value) {
-  const chars = [...value];
-  if (!chars.length) return "";
-
-  const valid = chars.filter(char => /[\u3400-\u9fff0-9]/.test(char));
+function getValidCharacter(value) {
+  const chars = [...String(value || "")];
+  const valid = chars.filter(ch => /[\u3400-\u9fff0-9]/u.test(ch));
   return valid.length ? valid[valid.length - 1] : "";
+}
+
+function setInputState(title, text, type = "") {
+  if (!els.inputState) return;
+  els.inputState.querySelector("strong").textContent = title;
+  els.inputState.querySelector("span").textContent = text;
+  els.inputState.className = `input-state ${type}`.trim();
 }
 
 function submitCharacter(character) {
@@ -157,41 +123,42 @@ function submitCharacter(character) {
 
   const matched = [];
   const unmatched = [];
-
   for (const station of remainingStations) {
-    if (station.includes(character)) {
-      matched.push(station);
-    } else {
-      unmatched.push(station);
-    }
+    if (station.includes(character)) matched.push(station);
+    else unmatched.push(station);
   }
 
-  // 没猜中：保留输入内容，让玩家能看到刚才输入了什么；游戏状态不变。
+  // 没有匹配：保留输入框中的字，并明确反馈。
   if (!matched.length) {
     els.answerInput.value = character;
-    els.answerInput.select();
-    els.foundHint.textContent = `“${character}”没有匹配到站名`;
+    setInputState("NO MATCH", `“${character}” 暂未找到对应站名`, "bad");
+    els.foundHint.textContent = `没有站名包含“${character}” · 继续尝试`;
+    els.answerInput.focus();
     return;
   }
 
   remainingStations = unmatched;
-
-  // 新猜出的站名插到最前面，而不是追加到列表末尾。
+  // 最新一批始终放在列表最前面。
   foundStations = [...matched, ...foundStations];
   renderFoundStations();
   updateGameStats();
-
-  // 猜中后清空输入框，方便继续输入下一个字符。
   els.answerInput.value = "";
+  setInputState("MATCHED", `找到 ${matched.length} 个站名`, "good");
+  els.answerInput.focus();
 
-  if (remainingStations.length === 0) {
-    finishGame("全部猜出！");
-  }
+  if (remainingStations.length === 0) finishGame("全部猜出");
 }
 
-function createStationElement(station, extraClass = "") {
+function processInputValue() {
+  if (composing || gameState !== "playing" || paused) return;
+  const character = getValidCharacter(els.answerInput.value);
+  if (!character) return;
+  submitCharacter(character);
+}
+
+function createStationElement(station) {
   const span = document.createElement("span");
-  span.className = `station ${extraClass}`.trim();
+  span.className = "station";
   span.textContent = station;
   return span;
 }
@@ -199,53 +166,46 @@ function createStationElement(station, extraClass = "") {
 function renderFoundStations() {
   els.foundList.classList.remove("empty");
   els.foundList.innerHTML = "";
-
   if (!foundStations.length) {
     els.foundList.classList.add("empty");
-    els.foundList.textContent = "还没有发现站名";
+    els.foundList.innerHTML = '<div class="list-empty">等待你的第一个答案</div>';
     return;
   }
-
-  for (const station of foundStations) {
-    els.foundList.appendChild(createStationElement(station));
-  }
-
-  els.foundHint.textContent = `已发现 ${foundStations.length} 个 · 最新结果在最前`;
+  foundStations.forEach((station, index) => {
+    const item = createStationElement(station);
+    if (index < 3) item.classList.add("recent");
+    els.foundList.appendChild(item);
+  });
+  els.foundHint.textContent = `已发现 ${foundStations.length} 个 · 最新结果在最前面`;
 }
 
-function renderResultList(container, stations, emptyText, className = "") {
+function renderResultList(container, stations, emptyText, className) {
   container.innerHTML = "";
   container.className = `station-list ${className}`.trim();
-
   if (!stations.length) {
     container.innerHTML = `<div class="list-empty">${emptyText}</div>`;
     return;
   }
-
-  for (const station of stations) {
-    container.appendChild(createStationElement(station));
-  }
+  stations.forEach(station => container.appendChild(createStationElement(station)));
 }
 
 function togglePause() {
   if (gameState !== "playing" && gameState !== "paused") return;
-
   paused = !paused;
   gameState = paused ? "paused" : "playing";
-  els.pauseBtn.textContent = paused ? "继续" : "暂停";
-
+  els.pauseBtn.textContent = paused ? "继续游戏" : "暂停游戏";
+  els.answerInput.disabled = paused;
   if (paused) {
     els.answerInput.blur();
-    els.answerInput.placeholder = "游戏已暂停";
+    setInputState("PAUSED", "计时已暂停", "pause");
   } else {
-    els.answerInput.placeholder = "例：中";
+    setInputState("READY", "请输入一个汉字或数字");
     els.answerInput.focus();
   }
 }
 
 function finishGame(reason) {
   if (gameState === "finished") return;
-
   clearInterval(gameTimer);
   gameTimer = null;
   gameState = "finished";
@@ -258,7 +218,6 @@ function finishGame(reason) {
 
   els.gamePanel.classList.add("hidden");
   els.resultPanel.classList.remove("hidden");
-
   els.resultTitle.textContent = reason;
   els.resultFound.textContent = found;
   els.resultTotal.textContent = total;
@@ -267,20 +226,8 @@ function finishGame(reason) {
   els.usedTime.textContent = formatTime(used);
   els.missedCount.textContent = remainingStations.length;
 
-  // 结果页先显示未猜出，再显示已猜出；两部分分别保留。
-  renderResultList(
-    els.missedList,
-    remainingStations,
-    "全部猜出，没有遗漏！",
-    "missed"
-  );
-  renderResultList(
-    els.resultFoundList,
-    foundStations,
-    "本局没有猜出站名。",
-    "result-found"
-  );
-
+  renderResultList(els.missedList, remainingStations, "没有遗漏，完美完成。", "missed");
+  renderResultList(els.resultFoundList, foundStations, "本局没有猜出站名。", "result-found");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -292,7 +239,6 @@ function resetToReady() {
   remainingSeconds = CONFIG.gameSeconds;
   paused = false;
   gameState = allStations.length ? "ready" : "loading";
-
   els.gamePanel.classList.add("hidden");
   els.resultPanel.classList.add("hidden");
   els.startPanel.classList.remove("hidden");
@@ -304,40 +250,33 @@ els.startBtn.addEventListener("click", startGame);
 els.againBtn.addEventListener("click", resetToReady);
 els.pauseBtn.addEventListener("click", togglePause);
 els.giveUpBtn.addEventListener("click", () => {
-  if (gameState === "playing" || gameState === "paused") {
-    finishGame("本局结束");
-  }
+  if (gameState === "playing" || gameState === "paused") finishGame("本局结束");
 });
-els.resetBtn.addEventListener("click", () => {
+els.resetBtn.addEventListener("click", async () => {
   if (gameState === "playing" || gameState === "paused") {
     if (!confirm("确定要退出本局并重新加载站名数据吗？")) return;
   }
-  loadStations();
   resetToReady();
+  await loadStations();
 });
 
-els.answerInput.addEventListener("input", (event) => {
-  const character = normalizeInput(event.target.value);
-  if (!character) return;
-  submitCharacter(character);
+// 中文输入法：compositionend 后再处理，避免拼音输入过程中被误判。
+els.answerInput.addEventListener("compositionstart", () => { composing = true; });
+els.answerInput.addEventListener("compositionend", () => {
+  composing = false;
+  setTimeout(processInputValue, 0);
 });
-
-els.answerInput.addEventListener("keydown", (event) => {
+els.answerInput.addEventListener("input", () => processInputValue());
+els.answerInput.addEventListener("paste", () => setTimeout(processInputValue, 0));
+els.answerInput.addEventListener("keydown", event => {
   if (event.key === "Escape") {
-    event.target.value = "";
+    els.answerInput.value = "";
+    setInputState("READY", "请输入一个汉字或数字");
   }
-});
-
-// 点击非按钮区域时，让输入框继续保持可用。
-document.addEventListener("click", (event) => {
-  if (
-    gameState === "playing" &&
-    !paused &&
-    !event.target.closest("button") &&
-    !event.target.closest(".station-list") &&
-    !event.target.closest(".answer-input")
-  ) {
-    els.answerInput.focus();
+  // 作为输入法/浏览器兼容兜底：按 Enter 也会提交，但不要求用户按 Enter。
+  if (event.key === "Enter") {
+    event.preventDefault();
+    processInputValue();
   }
 });
 

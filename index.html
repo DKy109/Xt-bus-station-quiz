@@ -3,139 +3,80 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="邢台公交站名猜字小游戏——输入一个汉字或数字，找出所有包含该字符的公交站名。">
-  <title>邢台公交 · 站名猜字</title>
+  <meta name="theme-color" content="#0a0d12">
+  <meta name="description" content="邢台公交站名猜字挑战">
+  <title>邢台 · 站名挑战</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="app">
-    <header class="topbar">
-      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-      <div class="brand-copy">
-        <div class="eyebrow">XINGTAI BUS · STATION QUIZ</div>
-        <h1>邢台站名猜字</h1>
-      </div>
-      <div class="top-actions">
-        <button id="resetBtn" class="icon-btn" type="button" aria-label="重新加载数据">↻</button>
-      </div>
-    </header>
+<main class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-symbol"><i></i><i></i><i></i></div>
+      <div><div class="eyebrow">XINGTAI / TRANSIT ARCHIVE</div><h1>站名挑战</h1></div>
+    </div>
+    <div class="top-right"><span class="live-dot"></span><span>LOCAL EDITION</span><button id="resetBtn" class="reset-btn" type="button">↻</button></div>
+  </header>
 
-    <section class="intro-panel">
-      <div class="intro-copy">
-        <div class="route-badge">CITY BUS / 站名挑战</div>
-        <h2>输入一个字，<br><em>找出所有经过它的站名。</em></h2>
-        <p>答对其中一个字即算找到。中文汉字与阿拉伯数字均可输入，系统会即时匹配，无需回车。</p>
+  <section class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-copy">
+      <div class="overline"><span>01</span> STATION NAME QUIZ</div>
+      <h2>认识这座城市，<br><strong>从一个字开始。</strong></h2>
+      <p>输入一个汉字或数字，系统会即时找出所有仍未发现、且包含该字符的邢台公交站名。</p>
+    </div>
+    <div class="hero-orbit" aria-hidden="true"><span>XT</span><b>BUS</b><em>01</em><em>02</em><em>03</em><em>04</em></div>
+    <div id="loadStatus" class="status">正在读取站名数据……</div>
+  </section>
+
+  <section id="startPanel" class="start-panel">
+    <div class="section-top"><span>READY TO DEPART</span><span>60 MINUTES</span></div>
+    <div class="start-main">
+      <div class="big-time"><small>CHALLENGE TIME</small><strong id="startTimer">60:00</strong></div>
+      <div class="stats-row">
+        <div><b id="startTotal">—</b><span>总站名</span></div>
+        <div><b id="startRemaining">—</b><span>待发现</span></div>
+        <div><b id="startFound">0</b><span>已发现</span></div>
       </div>
-      <div class="route-art" aria-hidden="true">
-        <div class="route-line"><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="route-label">XINGTAI<br><strong>BUS</strong></div>
+    </div>
+    <button id="startBtn" class="primary-btn" type="button" disabled><span>开始挑战</span><i>↗</i></button>
+  </section>
+
+  <section id="gamePanel" class="game-panel hidden">
+    <div class="game-header">
+      <div><small>TIME REMAINING</small><strong id="timer">60:00</strong></div>
+      <div class="live-stats">
+        <div><b id="foundCount">0</b><span>FOUND</span></div>
+        <div><b id="remainingCount">—</b><span>REMAINING</span></div>
+        <div><b id="totalCount">—</b><span>TOTAL</span></div>
       </div>
-      <div id="loadStatus" class="status">正在读取站名数据……</div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-label"><span>INPUT</span><em>无需回车 · 即时匹配</em></div>
+      <input id="answerInput" class="answer-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" maxlength="8" placeholder="输入一个字">
+      <div id="inputState" class="input-state"><strong>READY</strong><span>请输入一个汉字或数字</span></div>
+    </div>
+
+    <div class="game-actions"><button id="pauseBtn" class="secondary-btn" type="button">暂停游戏</button><button id="giveUpBtn" class="secondary-btn end-btn" type="button">结束本局</button></div>
+
+    <section class="found-section">
+      <div class="section-title"><div><span>02 / DISCOVERED</span><h3>已发现站名</h3></div><p id="foundHint">新发现会出现在最前面</p></div>
+      <div id="foundList" class="station-list empty"><div class="list-empty">等待你的第一个答案</div></div>
     </section>
+  </section>
 
-    <section id="startPanel" class="start-panel">
-      <div class="start-meta">
-        <div>
-          <span class="label">CHALLENGE TIME</span>
-          <strong id="startTimer">60:00</strong>
-        </div>
-        <div class="start-stats">
-          <span><b id="startTotal">—</b><small>总站名</small></span>
-          <span><b id="startRemaining">—</b><small>待发现</small></span>
-          <span><b id="startFound">0</b><small>已发现</small></span>
-        </div>
-      </div>
-      <button id="startBtn" class="primary-btn" type="button" disabled>
-        <span>开始挑战</span><span class="arrow">→</span>
-      </button>
-    </section>
+  <section id="resultPanel" class="result-panel hidden">
+    <div class="result-top"><div class="result-ring"><strong id="completionRate">0%</strong><span>COMPLETION</span></div><div><span class="overline">03 / ROUND COMPLETE</span><h2 id="resultTitle">本局结束</h2><p><strong id="resultFound">0</strong> / <span id="resultTotal">0</span> 个站名已发现 · 用时 <strong id="usedTime">00:00</strong></p></div></div>
+    <div class="result-grid">
+      <section class="result-block missed-block"><div class="section-title"><div><span>NOT FOUND</span><h3>未猜出站名</h3></div><b id="missedCount" class="count-badge">0</b></div><div id="missedList" class="station-list missed"></div></section>
+      <section class="result-block found-block"><div class="section-title"><div><span>FOUND</span><h3>已猜出站名</h3></div><b id="resultFoundCount" class="count-badge found-badge">0</b></div><div id="resultFoundList" class="station-list result-found"></div></section>
+    </div>
+    <button id="againBtn" class="primary-btn again" type="button"><span>重新挑战</span><i>↗</i></button>
+  </section>
 
-    <section id="gamePanel" class="game-panel hidden">
-      <div class="game-topline">
-        <div class="timer-block">
-          <span class="label">TIME LEFT</span>
-          <div class="timer" id="timer">60:00</div>
-        </div>
-        <div class="live-stats">
-          <div><strong id="foundCount">0</strong><span>已发现</span></div>
-          <div><strong id="remainingCount">—</strong><span>待发现</span></div>
-          <div><strong id="totalCount">—</strong><span>总站名</span></div>
-        </div>
-      </div>
-
-      <div class="input-zone">
-        <div class="input-caption">输入汉字或数字</div>
-        <input
-          id="answerInput"
-          class="answer-input"
-          type="text"
-          inputmode="text"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          maxlength="2"
-          placeholder="例：中"
-          aria-label="输入一个汉字或阿拉伯数字"
-        >
-        <div class="hint">输入后自动匹配 · 不需要按回车</div>
-      </div>
-
-      <div class="game-buttons">
-        <button id="pauseBtn" class="secondary-btn" type="button">暂停</button>
-        <button id="giveUpBtn" class="secondary-btn danger-btn" type="button">结束本局</button>
-      </div>
-
-      <section class="found-section">
-        <div class="section-heading">
-          <div><span class="section-kicker">DISCOVERED</span><h3>已发现站名</h3></div>
-          <span id="foundHint" class="section-note">输入字符开始</span>
-        </div>
-        <div id="foundList" class="station-list empty">还没有发现站名</div>
-      </section>
-    </section>
-
-    <section id="resultPanel" class="result-panel hidden">
-      <div class="result-hero">
-        <div class="result-score">
-          <span>COMPLETION</span>
-          <strong id="completionRate">0%</strong>
-        </div>
-        <div class="result-summary">
-          <span class="label">ROUND RESULT</span>
-          <h2 id="resultTitle">挑战完成</h2>
-          <p><strong id="resultFound">0</strong> / <span id="resultTotal">0</span> 个站名已发现</p>
-          <p class="used">用时 <strong id="usedTime">00:00</strong></p>
-        </div>
-      </div>
-
-      <div class="result-grid">
-        <section class="result-block missed-block">
-          <div class="result-heading">
-            <div><span class="section-kicker">NOT FOUND</span><h3>未猜出站名</h3></div>
-            <span id="missedCount" class="count-badge">0</span>
-          </div>
-          <div id="missedList" class="station-list missed"></div>
-        </section>
-
-        <section class="result-block found-block">
-          <div class="result-heading">
-            <div><span class="section-kicker">FOUND</span><h3>已猜出站名</h3></div>
-            <span id="resultFoundCount" class="count-badge found-badge">0</span>
-          </div>
-          <div id="resultFoundList" class="station-list result-found"></div>
-        </section>
-      </div>
-
-      <button id="againBtn" class="primary-btn again" type="button"><span>再来一次</span><span class="arrow">↗</span></button>
-    </section>
-
-    <footer>
-      <span>邢台公交 · 站名猜字</span>
-      <span>DATA / stations.txt</span>
-    </footer>
-  </main>
-
-  <script src="script.js"></script>
+  <footer><span>邢台公交 · STATION ARCHIVE</span><span>PRIVATE PROJECT / v2.1</span></footer>
+</main>
+<script src="script.js"></script>
 </body>
 </html>
