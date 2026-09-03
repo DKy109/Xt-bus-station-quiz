@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="邢台公交站名猜盐——输入一个汉字或数字，找出所有包含该字符的公交站名。">
+  <title>邢台公交站名 · 猜盐</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <button id="backBtn" class="icon-btn" type="button" aria-label="返回">‹</button>
+      <h1>猜盐</h1>
+      <div class="top-actions">
+        <button id="resetBtn" class="icon-btn small" type="button" aria-label="重新加载">↻</button>
+      </div>
+    </header>
+
+    <section class="intro card">
+      <h2>邢台公交站名，但答对其中一个字也算对</h2>
+      <p class="source">
+        数据文件：<code>stations.txt</code>。每行一个公交站名。支持中文、括号和阿拉伯数字。
+        游戏运行在 GitHub Pages 等静态网站环境时，会自动读取网页同目录下的文本文件。
+      </p>
+      <div id="loadStatus" class="status">正在读取站名数据……</div>
+    </section>
+
+    <section id="startPanel" class="game-panel card">
+      <div class="timer-large" id="startTimer">60:00</div>
+      <div class="stats-line">
+        <span>对：<b id="startFound">0</b></span>
+        <span>/ 剩：<b id="startRemaining">—</b></span>
+        <span>/ 总：<b id="startTotal">—</b></span>
+      </div>
+      <button id="startBtn" class="primary-btn" type="button" disabled>开始</button>
+    </section>
+
+    <section id="gamePanel" class="game-panel card hidden">
+      <div class="game-head">
+        <div class="timer" id="timer">60:00</div>
+        <div class="stats-line">
+          <span>对：<b id="foundCount">0</b></span>
+          <span>/ 剩：<b id="remainingCount">—</b></span>
+          <span>/ 总：<b id="totalCount">—</b></span>
+        </div>
+      </div>
+
+      <input
+        id="answerInput"
+        class="answer-input"
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        maxlength="2"
+        placeholder="输入一个字或数字"
+        aria-label="输入一个汉字或阿拉伯数字"
+      >
+      <div class="hint">自动匹配，无需回车</div>
+
+      <div class="game-buttons">
+        <button id="giveUpBtn" class="secondary-btn" type="button">放弃</button>
+        <button id="pauseBtn" class="secondary-btn" type="button">暂停</button>
+      </div>
+
+      <section class="result-section">
+        <div class="section-title">
+          <span>已猜出</span>
+          <span id="foundHint">输入字符开始</span>
+        </div>
+        <div id="foundList" class="station-list empty">还没有猜出任何站名</div>
+      </section>
+    </section>
+
+    <section id="resultPanel" class="result-panel card hidden">
+      <div class="result-summary">
+        <div class="circle-progress">
+          <div class="circle-value"><span id="resultFound">0</span><small>/ <span id="resultTotal">0</span></small></div>
+        </div>
+        <div>
+          <h2 id="resultTitle">测试完成</h2>
+          <p>完成率 <strong id="completionRate">0%</strong></p>
+          <p class="muted">用时 <strong id="usedTime">00:00</strong></p>
+        </div>
+      </div>
+
+      <div class="result-divider"></div>
+
+      <div class="missed-title">
+        <h3>未猜出站名</h3>
+        <span id="missedCount">0</span>
+      </div>
+      <div id="missedList" class="station-list missed"></div>
+
+      <button id="againBtn" class="primary-btn again" type="button">再来一次</button>
+    </section>
+
+    <footer>
+      <span>邢台公交站名猜盐</span>
+      <span>数据由 stations.txt 提供</span>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
