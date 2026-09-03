@@ -1,4 +1,4 @@
-# 邢台公交站名「猜盐」
+# 邢台公交站名「猜字」
 
 一个纯前端、无需后端的公交站名字符匹配小游戏。
 
@@ -41,70 +41,3 @@
 幸福大街北口
 ```
 
-## 部署到 GitHub Pages
-
-把以下文件放进同一个 GitHub 仓库：
-
-```text
-index.html
-style.css
-script.js
-stations.txt
-README.md
-```
-
-然后在：
-
-**GitHub → Settings → Pages → Deploy from a branch**
-
-选择保存这些文件的分支和 `/ (root)` 目录。
-
-部署完成后即可通过 GitHub Pages 网址访问。
-
-### 注意
-
-不要直接双击 `index.html` 用 `file://` 打开，因为浏览器通常会阻止网页通过 `fetch()` 读取本地 `stations.txt`。
-
-本地测试时可以使用：
-
-```bash
-python -m http.server 8000
-```
-
-然后打开：
-
-```text
-http://localhost:8000
-```
-
-## 调整游戏时间
-
-打开 `script.js`，找到：
-
-```javascript
-gameSeconds: 60 * 60
-```
-
-例如：
-
-```javascript
-gameSeconds: 30 * 60
-```
-
-就是 30 分钟。
-
-## 关于重复站名
-
-程序按 `stations.txt` 的**每一行**计算，所以即使两个站名完全相同，只要出现两行，也会被计为两个项目。
-
-## 后续可以增加的功能
-
-- 随机题库 / 每日挑战
-- 成绩排行榜
-- 分享成绩图片
-- 玩家昵称
-- 正确字符统计
-- 连续命中 Combo
-- 音效
-- 深色/浅色主题
-- 从多个城市的数据文件中选择城市

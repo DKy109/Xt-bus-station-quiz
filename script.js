@@ -26,14 +26,15 @@ const els = {
   pauseBtn: $("pauseBtn"),
   resultFound: $("resultFound"),
   resultTotal: $("resultTotal"),
+  resultFoundCount: $("resultFoundCount"),
+  resultFoundList: $("resultFoundList"),
   completionRate: $("completionRate"),
   usedTime: $("usedTime"),
   resultTitle: $("resultTitle"),
   missedCount: $("missedCount"),
   missedList: $("missedList"),
   againBtn: $("againBtn"),
-  resetBtn: $("resetBtn"),
-  backBtn: $("backBtn")
+  resetBtn: $("resetBtn")
 };
 
 let allStations = [];
@@ -41,7 +42,6 @@ let remainingStations = [];
 let foundStations = [];
 let gameTimer = null;
 let remainingSeconds = CONFIG.gameSeconds;
-let gameStartedAt = null;
 let paused = false;
 let gameState = "loading"; // loading | ready | playing | paused | finished
 
@@ -77,8 +77,6 @@ async function loadStations() {
     }
 
     const text = await response.text();
-
-    // 支持 Windows / Linux / Mac 换行，并忽略空行。
     const stations = text
       .replace(/^\uFEFF/, "")
       .split(/\r?\n/)
@@ -93,7 +91,7 @@ async function loadStations() {
     remainingStations = [...allStations];
     foundStations = [];
 
-    els.loadStatus.textContent = `已加载 ${allStations.length} 个公交站名，可以开始。`;
+    els.loadStatus.textContent = `已载入 ${allStations.length} 个站名 · 数据准备完成`;
     els.loadStatus.className = "status ok";
     els.startBtn.disabled = false;
     gameState = "ready";
@@ -116,7 +114,6 @@ function startGame() {
   remainingStations = [...allStations];
   foundStations = [];
   remainingSeconds = CONFIG.gameSeconds;
-  gameStartedAt = Date.now();
   paused = false;
   gameState = "playing";
 
@@ -124,9 +121,11 @@ function startGame() {
   els.resultPanel.classList.add("hidden");
   els.gamePanel.classList.remove("hidden");
   els.pauseBtn.textContent = "暂停";
+  els.answerInput.value = "";
+  els.answerInput.placeholder = "例：中";
   els.foundList.innerHTML = "";
   els.foundList.classList.add("empty");
-  els.foundList.textContent = "还没有猜出任何站名";
+  els.foundList.textContent = "还没有发现站名";
   els.foundHint.textContent = "输入字符开始";
   updateGameStats();
 
@@ -146,11 +145,9 @@ function startGame() {
 }
 
 function normalizeInput(value) {
-  // 一次只处理一个字符；如果粘贴了多个字符，只取最后一个有效字符。
   const chars = [...value];
   if (!chars.length) return "";
 
-  // 中文、阿拉伯数字。括号虽然允许出现在站名中，但不作为猜题输入。
   const valid = chars.filter(char => /[\u3400-\u9fff0-9]/.test(char));
   return valid.length ? valid[valid.length - 1] : "";
 }
@@ -169,38 +166,65 @@ function submitCharacter(character) {
     }
   }
 
-  // 不匹配时完全不改变游戏状态。
+  // 没猜中：保留输入内容，让玩家能看到刚才输入了什么；游戏状态不变。
   if (!matched.length) {
+    els.answerInput.value = character;
+    els.answerInput.select();
+    els.foundHint.textContent = `“${character}”没有匹配到站名`;
     return;
   }
 
   remainingStations = unmatched;
-  foundStations.push(...matched);
 
-  renderFoundStations(matched);
+  // 新猜出的站名插到最前面，而不是追加到列表末尾。
+  foundStations = [...matched, ...foundStations];
+  renderFoundStations();
   updateGameStats();
+
+  // 猜中后清空输入框，方便继续输入下一个字符。
+  els.answerInput.value = "";
 
   if (remainingStations.length === 0) {
     finishGame("全部猜出！");
   }
 }
 
-function renderFoundStations(newStations) {
+function createStationElement(station, extraClass = "") {
+  const span = document.createElement("span");
+  span.className = `station ${extraClass}`.trim();
+  span.textContent = station;
+  return span;
+}
+
+function renderFoundStations() {
   els.foundList.classList.remove("empty");
+  els.foundList.innerHTML = "";
 
-  if (els.foundList.textContent === "还没有猜出任何站名") {
-    els.foundList.textContent = "";
+  if (!foundStations.length) {
+    els.foundList.classList.add("empty");
+    els.foundList.textContent = "还没有发现站名";
+    return;
   }
 
-  for (const station of newStations) {
-    const span = document.createElement("span");
-    span.className = "station new";
-    span.textContent = station;
-    els.foundList.appendChild(span);
-    els.foundList.appendChild(document.createTextNode(" "));
+  for (const station of foundStations) {
+    els.foundList.appendChild(createStationElement(station));
   }
 
-  els.foundHint.textContent = `本次找到 ${newStations.length} 个`;
+  els.foundHint.textContent = `已发现 ${foundStations.length} 个 · 最新结果在最前`;
+}
+
+function renderResultList(container, stations, emptyText, className = "") {
+  container.innerHTML = "";
+  container.className = `station-list ${className}`.trim();
+
+  if (!stations.length) {
+    container.innerHTML = `<div class="list-empty">${emptyText}</div>`;
+    return;
+  }
+
+  for (const station of stations) {
+    container.appendChild(createStationElement(station));
+  }
 }
 
 function togglePause() {
@@ -214,7 +238,7 @@ function togglePause() {
     els.answerInput.blur();
     els.answerInput.placeholder = "游戏已暂停";
   } else {
-    els.answerInput.placeholder = "输入一个字或数字";
+    els.answerInput.placeholder = "例：中";
     els.answerInput.focus();
   }
 }
@@ -238,26 +262,24 @@ function finishGame(reason) {
   els.resultTitle.textContent = reason;
   els.resultFound.textContent = found;
   els.resultTotal.textContent = total;
+  els.resultFoundCount.textContent = found;
   els.completionRate.textContent = `${rate.toFixed(0)}%`;
   els.usedTime.textContent = formatTime(used);
   els.missedCount.textContent = remainingStations.length;
 
-  const progress = Math.max(0, Math.min(100, rate));
-  document.querySelector(".circle-progress").style.setProperty("--progress", `${progress}%`);
-
-  els.missedList.innerHTML = "";
-
-  if (!remainingStations.length) {
-    els.missedList.innerHTML = '<div class="station">全部猜出，没有遗漏！</div>';
-  } else {
-    for (const station of remainingStations) {
-      const span = document.createElement("span");
-      span.className = "station";
-      span.textContent = station;
-      els.missedList.appendChild(span);
-      els.missedList.appendChild(document.createTextNode(" "));
-    }
-  }
+  // 结果页先显示未猜出，再显示已猜出；两部分分别保留。
+  renderResultList(
+    els.missedList,
+    remainingStations,
+    "全部猜出，没有遗漏！",
+    "missed"
+  );
+  renderResultList(
+    els.resultFoundList,
+    foundStations,
+    "本局没有猜出站名。",
+    "result-found"
+  );
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -269,12 +291,11 @@ function resetToReady() {
   foundStations = [];
   remainingSeconds = CONFIG.gameSeconds;
   paused = false;
-  gameState = "ready";
+  gameState = allStations.length ? "ready" : "loading";
 
   els.gamePanel.classList.add("hidden");
   els.resultPanel.classList.add("hidden");
   els.startPanel.classList.remove("hidden");
-
   els.answerInput.value = "";
   updateStartStats();
 }
@@ -284,7 +305,7 @@ els.againBtn.addEventListener("click", resetToReady);
 els.pauseBtn.addEventListener("click", togglePause);
 els.giveUpBtn.addEventListener("click", () => {
   if (gameState === "playing" || gameState === "paused") {
-    finishGame("已放弃");
+    finishGame("本局结束");
   }
 });
 els.resetBtn.addEventListener("click", () => {
@@ -294,15 +315,11 @@ els.resetBtn.addEventListener("click", () => {
   loadStations();
   resetToReady();
 });
-els.backBtn.addEventListener("click", () => {
-  if (history.length > 1) history.back();
-  else window.scrollTo({ top: 0, behavior: "smooth" });
-});
 
 els.answerInput.addEventListener("input", (event) => {
   const character = normalizeInput(event.target.value);
-  event.target.value = "";
-  if (character) submitCharacter(character);
+  if (!character) return;
+  submitCharacter(character);
 });
 
 els.answerInput.addEventListener("keydown", (event) => {
@@ -311,13 +328,14 @@ els.answerInput.addEventListener("keydown", (event) => {
   }
 });
 
-// 防止手机浏览器页面滑动时误失焦后无法继续输入。
+// 点击非按钮区域时，让输入框继续保持可用。
 document.addEventListener("click", (event) => {
   if (
     gameState === "playing" &&
     !paused &&
     !event.target.closest("button") &&
-    !event.target.closest(".station-list")
+    !event.target.closest(".station-list") &&
+    !event.target.closest(".answer-input")
   ) {
     els.answerInput.focus();
   }
