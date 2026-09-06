@@ -30,19 +30,21 @@
   </section>
 
   <section id="startPanel" class="start-panel">
-    <div class="section-top"><span>READY TO DEPART</span><span>60 MINUTES</span></div>
-    <div class="start-main">
-      <div class="big-time"><small>CHALLENGE TIME</small><strong id="startTimer">60:00</strong></div>
-      <div class="stats-row">
-        <div><b id="startTotal">—</b><span>总站名</span></div>
-        <div><b id="startRemaining">—</b><span>待发现</span></div>
-        <div><b id="startFound">0</b><span>已发现</span></div>
-      </div>
+    <div class="section-top"><span>READY TO DEPART</span><span>SELECT DATASETS</span></div>
+    <div class="dataset-heading"><div><small>CHALLENGE DATASETS</small><h2>选择本局站名集</h2><p>可选择一个或多个。不同站名集中的同名站点自动合并，只计算一次。</p></div><div class="dataset-selected"><strong id="selectedDatasetCount">0</strong><span>SELECTED</span></div></div>
+    <div id="datasetOptions" class="dataset-options">
+      <label class="dataset-card"><input type="checkbox" name="dataset" value="1-118"><span class="dataset-check"></span><span class="dataset-copy"><strong>邢台公交 1–118</strong><small>1-118.txt</small></span><b data-dataset-count="1-118">—</b></label>
+      <label class="dataset-card"><input type="checkbox" name="dataset" value="203-315"><span class="dataset-check"></span><span class="dataset-copy"><strong>邢台公交 203–315</strong><small>203-315.txt</small></span><b data-dataset-count="203-315">—</b></label>
+      <label class="dataset-card"><input type="checkbox" name="dataset" value="rongda"><span class="dataset-check"></span><span class="dataset-copy"><strong>融大公交</strong><small>rongda.txt</small></span><b data-dataset-count="rongda">—</b></label>
+      <label class="dataset-card"><input type="checkbox" name="dataset" value="pingxiang"><span class="dataset-check"></span><span class="dataset-copy"><strong>平乡公交</strong><small>pingxiang.txt</small></span><b data-dataset-count="pingxiang">—</b></label>
+      <label class="dataset-card"><input type="checkbox" name="dataset" value="chengji"><span class="dataset-check"></span><span class="dataset-copy"><strong>城际公交</strong><small>chengji.txt</small></span><b data-dataset-count="chengji">—</b></label>
     </div>
+    <div class="start-main"><div class="big-time"><small>CHALLENGE TIME</small><strong id="startTimer">60:00</strong></div><div class="stats-row"><div><b id="startTotal">—</b><span>本局总站名</span></div><div><b id="startRemaining">—</b><span>待发现</span></div><div><b id="startFound">0</b><span>已发现</span></div></div></div>
     <button id="startBtn" class="primary-btn" type="button" disabled><span>开始挑战</span><i>↗</i></button>
   </section>
 
   <section id="gamePanel" class="game-panel hidden">
+    <div id="activeDatasets" class="active-datasets"></div>
     <div class="game-header">
       <div><small>TIME REMAINING</small><strong id="timer">60:00</strong></div>
       <div class="live-stats">
@@ -67,6 +69,7 @@
   </section>
 
   <section id="resultPanel" class="result-panel hidden">
+    <div id="resultDatasets" class="result-datasets"></div>
     <div class="result-top"><div class="result-ring"><strong id="completionRate">0%</strong><span>COMPLETION</span></div><div><span class="overline">03 / ROUND COMPLETE</span><h2 id="resultTitle">本局结束</h2><p><strong id="resultFound">0</strong> / <span id="resultTotal">0</span> 个站名已发现 · 用时 <strong id="usedTime">00:00</strong></p></div></div>
     <div class="result-grid">
       <section class="result-block missed-block"><div class="section-title"><div><span>NOT FOUND</span><h3>未猜出站名</h3></div><b id="missedCount" class="count-badge">0</b></div><div id="missedList" class="station-list missed"></div></section>
@@ -75,7 +78,7 @@
     <button id="againBtn" class="primary-btn again" type="button"><span>重新挑战</span><i>↗</i></button>
   </section>
 
-  <footer><span>邢台公交 · STATION ARCHIVE</span><span>PRIVATE PROJECT / v2.1</span></footer>
+  <footer><span>邢台公交 · STATION ARCHIVE</span><span>5 DATASETS / v3.0</span></footer>
 </main>
 <script src="script.js"></script>
 </body>
